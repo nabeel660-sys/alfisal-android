@@ -10,6 +10,7 @@ import android.graphics.drawable.ColorDrawable
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.Message
@@ -47,6 +48,19 @@ class MainActivity : AppCompatActivity() {
             webView.loadUrl(APP_URL)
         } else {
             showOfflinePage()
+        }
+
+        // Request notification permission (Android 13+) then schedule daily reminder
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS), 200)
+            } else {
+                NotificationWorker.schedule(this)
+            }
+        } else {
+            NotificationWorker.schedule(this)
         }
     }
 
@@ -216,6 +230,10 @@ class MainActivity : AppCompatActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERMISSION_REQUEST && grantResults.isNotEmpty()) launchFileChooser()
+        if (requestCode == 200 && grantResults.isNotEmpty() &&
+            grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            NotificationWorker.schedule(this)
+        }
     }
 
     override fun onBackPressed() {

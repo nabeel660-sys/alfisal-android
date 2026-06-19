@@ -60,7 +60,10 @@ class MainActivity : AppCompatActivity() {
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             cacheMode = WebSettings.LOAD_DEFAULT
             mediaPlaybackRequiresUserGesture = false
-            userAgentString = userAgentString + " AlFisalApp/1.0"
+            // Remove "wv" from user agent so Google OAuth doesn't block WebView
+            userAgentString = userAgentString
+                .replace("; wv)", ")")
+                .replace(";wv)", ")")
         }
 
         webView.webViewClient = object : WebViewClient() {

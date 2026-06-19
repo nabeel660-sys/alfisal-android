@@ -67,10 +67,10 @@ class MainActivity : AppCompatActivity() {
             mediaPlaybackRequiresUserGesture = false
             setSupportMultipleWindows(true)
             javaScriptCanOpenWindowsAutomatically = true
-            // Remove "wv" flag so Google doesn't block OAuth
+            // Remove "wv" flag + add identifier so JS can detect Android app
             userAgentString = userAgentString
                 .replace("; wv)", ")")
-                .replace(";wv)", ")")
+                .replace(";wv)", ")") + " AlFisalApp/1.0"
         }
     }
 

@@ -69,16 +69,32 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val url = request?.url.toString()
-                // افتح الروابط الخارجية في المتصفح
-                return if (url.startsWith("https://accounting-alfisal.pages.dev") ||
-                    url.startsWith("https://accounts.google.com") ||
-                    url.startsWith("https://oauth2.googleapis.com")) {
-                    false
-                } else {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    true
+                val url = request?.url?.toString() ?: return false
+
+                // فتح Google OAuth في المتصفح الخارجي
+                if (url.contains("accounts.google.com") ||
+                    url.contains("oauth2.googleapis.com") ||
+                    url.contains("oauth2callback")) {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(this@MainActivity, "افتح المتصفح يدوياً", Toast.LENGTH_SHORT).show()
+                    }
+                    return true
                 }
+
+                // الموقع الرئيسي يفتح داخل التطبيق
+                if (url.startsWith("https://accounting-alfisal.pages.dev")) {
+                    return false
+                }
+
+                // روابط خارجية تفتح في المتصفح
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                } catch (e: Exception) { }
+                return true
             }
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
@@ -122,13 +138,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun launchFileChooser() {
-        // Camera intent
         val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         val photoFile = createImageFile()
         cameraImageUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", photoFile)
         cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraImageUri)
 
-        // Gallery intent
         val galleryIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
             type = "*/*"
             putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)

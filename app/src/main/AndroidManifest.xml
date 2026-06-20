@@ -41,6 +41,15 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/Theme.AlFisal.NoActionBar" />
 
+        <!-- Boot receiver to reschedule notifications after restart -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
         <!-- File provider for camera -->
         <provider
             android:name="androidx.core.content.FileProvider"

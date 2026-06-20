@@ -21,8 +21,9 @@ class NotificationWorker(context: Context, params: WorkerParameters) : Worker(co
         val channelId = "alfisal_daily"
         val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val channel = NotificationChannel(channelId, "تذكير يومي", NotificationManager.IMPORTANCE_DEFAULT).apply {
+        val channel = NotificationChannel(channelId, "تذكير يومي", NotificationManager.IMPORTANCE_HIGH).apply {
             description = "تذكير بتسجيل الفواتير اليومية"
+            enableVibration(true)
         }
         nm.createNotificationChannel(channel)
 
@@ -39,7 +40,8 @@ class NotificationWorker(context: Context, params: WorkerParameters) : Worker(co
             .setContentTitle("النظام المحاسبي")
             .setContentText("لا تنسَ تسجيل فواتير اليوم 📋")
             .setStyle(NotificationCompat.BigTextStyle().bigText("تذكير: سجّل جميع مشترياتك ومبيعاتك ومصروفات اليوم في النظام المحاسبي"))
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()

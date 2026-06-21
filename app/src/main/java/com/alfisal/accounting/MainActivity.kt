@@ -57,10 +57,10 @@ class MainActivity : AppCompatActivity() {
                 ActivityCompat.requestPermissions(this,
                     arrayOf(Manifest.permission.POST_NOTIFICATIONS), 200)
             } else {
-                NotificationWorker.schedule(this)
+                AlarmReceiver.schedule(this)
             }
         } else {
-            NotificationWorker.schedule(this)
+            AlarmReceiver.schedule(this)
         }
     }
 
@@ -232,7 +232,7 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == PERMISSION_REQUEST && grantResults.isNotEmpty()) launchFileChooser()
         if (requestCode == 200 && grantResults.isNotEmpty() &&
             grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            NotificationWorker.schedule(this)
+            AlarmReceiver.schedule(this)
         }
     }
 

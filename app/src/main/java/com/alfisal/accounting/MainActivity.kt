@@ -10,9 +10,11 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.Message
 import android.provider.MediaStore
 import android.view.ViewGroup
 import android.webkit.*
+import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -73,7 +75,8 @@ class MainActivity : AppCompatActivity() {
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             cacheMode = WebSettings.LOAD_DEFAULT
             mediaPlaybackRequiresUserGesture = false
-            // Add identifier so JS can detect Android app
+            setSupportMultipleWindows(true)
+            javaScriptCanOpenWindowsAutomatically = true
             userAgentString = userAgentString
                 .replace("; wv)", ")")
                 .replace(";wv)", ")") + " AlFisalApp/2.0"
@@ -114,6 +117,41 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPermissionRequest(request: PermissionRequest?) {
                 request?.grant(request.resources)
+            }
+
+            // يتعامل مع window.open() لعرض نوافذ الطباعة داخل التطبيق
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: Message?
+            ): Boolean {
+                val popupWebView = WebView(this@MainActivity)
+                buildWebViewSettings(popupWebView.settings)
+
+                popupWebView.webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(v: WebView?, r: WebResourceRequest?) = false
+                }
+
+                popupWebView.webChromeClient = object : WebChromeClient() {
+                    override fun onCloseWindow(window: WebView?) {
+                        val parent = window?.parent as? ViewGroup
+                        parent?.removeView(window)
+                    }
+                }
+
+                // إضافة نافذة الطباعة فوق WebView الرئيسي
+                val container = webView?.parent as? ViewGroup
+                val params = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                container?.addView(popupWebView, params)
+
+                val transport = resultMsg?.obj as? WebView.WebViewTransport
+                transport?.webView = popupWebView
+                resultMsg?.sendToTarget()
+                return true
             }
         }
     }

@@ -1,24 +1,18 @@
 package com.alfisal.accounting
 
 import android.Manifest
-import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.os.Message
 import android.provider.MediaStore
 import android.view.ViewGroup
-import android.view.Window
 import android.webkit.*
-import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -79,12 +73,10 @@ class MainActivity : AppCompatActivity() {
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             cacheMode = WebSettings.LOAD_DEFAULT
             mediaPlaybackRequiresUserGesture = false
-            setSupportMultipleWindows(true)
-            javaScriptCanOpenWindowsAutomatically = true
-            // Remove "wv" flag + add identifier so JS can detect Android app
+            // Add identifier so JS can detect Android app
             userAgentString = userAgentString
                 .replace("; wv)", ")")
-                .replace(";wv)", ")") + " AlFisalApp/1.0"
+                .replace(";wv)", ")") + " AlFisalApp/2.0"
         }
     }
 
@@ -94,12 +86,11 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url?.toString() ?: return false
-                // Stay inside WebView for app and Google OAuth
-                if (url.startsWith("https://accounting-alfisal.pages.dev") ||
-                    url.contains("accounts.google.com") ||
-                    url.contains("googleapis.com")) {
+                // Stay inside WebView for the app domain
+                if (url.startsWith("https://accounting-alfisal.pages.dev")) {
                     return false
                 }
+                // Open external links in browser
                 try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (e: Exception) {}
                 return true
             }
@@ -110,55 +101,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         webView.webChromeClient = object : WebChromeClient() {
-
-            // Handle Google OAuth popup window
-            override fun onCreateWindow(view: WebView?, isDialog: Boolean, isUserGesture: Boolean, resultMsg: Message?): Boolean {
-                val popupWebView = WebView(this@MainActivity)
-                buildWebViewSettings(popupWebView.settings)
-
-                val dialog = Dialog(this@MainActivity)
-                dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-                dialog.window?.setBackgroundDrawable(ColorDrawable(Color.WHITE))
-
-                val container = FrameLayout(this@MainActivity)
-                container.addView(popupWebView, ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                ))
-                dialog.setContentView(container)
-                dialog.window?.setLayout(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-
-                popupWebView.webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                        val url = request?.url?.toString() ?: return false
-                        // When Google redirects back to the app, close popup and reload
-                        if (url.startsWith("https://accounting-alfisal.pages.dev")) {
-                            dialog.dismiss()
-                            webView.loadUrl(url)
-                            return true
-                        }
-                        return false
-                    }
-                }
-
-                popupWebView.webChromeClient = object : WebChromeClient() {
-                    override fun onCloseWindow(window: WebView?) {
-                        dialog.dismiss()
-                        webView.reload()
-                    }
-                }
-
-                val transport = resultMsg?.obj as? WebView.WebViewTransport
-                transport?.webView = popupWebView
-                resultMsg?.sendToTarget()
-
-                dialog.show()
-                return true
-            }
-
             override fun onShowFileChooser(
                 webView: WebView?,
                 filePathCallback: ValueCallback<Array<Uri>>?,
@@ -252,8 +194,8 @@ class MainActivity : AppCompatActivity() {
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>body{font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f0f4f8}
 .box{text-align:center;padding:40px;background:white;border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.1);max-width:320px;margin:20px}
-.icon{font-size:64px;margin-bottom:16px}h2{color:#2563eb}p{color:#666;line-height:1.6}
-button{margin-top:20px;padding:12px 28px;background:#2563eb;color:white;border:none;border-radius:10px;font-size:16px;cursor:pointer}</style></head>
+.icon{font-size:64px;margin-bottom:16px}h2{color:#0d9488}p{color:#666;line-height:1.6}
+button{margin-top:20px;padding:12px 28px;background:#0d9488;color:white;border:none;border-radius:10px;font-size:16px;cursor:pointer}</style></head>
 <body><div class="box"><div class="icon">📡</div><h2>لا يوجد اتصال</h2>
 <p>تحقق من اتصالك بالإنترنت</p>
 <button onclick="window.location.reload()">إعادة المحاولة</button></div></body></html>"""

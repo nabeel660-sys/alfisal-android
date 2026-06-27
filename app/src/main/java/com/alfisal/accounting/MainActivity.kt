@@ -83,19 +83,76 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // JavaScript Bridge — يستقبل محتوى HTML من دوال الطباعة ويفتحه في المتصفح
+    inner class AndroidBridge {
+        @android.webkit.JavascriptInterface
+        fun openHtml(html: String) {
+            runOnUiThread {
+                try {
+                    val file = java.io.File(cacheDir, "alfisal_print.html")
+                    file.writeText(html)
+                    val uri = FileProvider.getUriForFile(this@MainActivity, "$packageName.fileprovider", file)
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, "text/html")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    private fun injectPrintBridge() {
+        webView.evaluateJavascript("""
+            (function() {
+                if (window._alfisalBridged) return;
+                window._alfisalBridged = true;
+                var _orig = window.open;
+                window.open = function(url, name, specs) {
+                    if (!url || url === '' || url === 'about:blank') {
+                        var _html = '';
+                        var _sent = false;
+                        function _send() {
+                            if (_sent) return; _sent = true;
+                            AndroidBridge.openHtml(_html);
+                        }
+                        var _doc = {
+                            open: function() { _html = ''; },
+                            write: function(s) { _html += s; },
+                            close: function() { setTimeout(_send, 200); },
+                            addEventListener: function() {}
+                        };
+                        return {
+                            document: _doc,
+                            focus: function() {},
+                            print: function() { _send(); },
+                            addEventListener: function(e, fn) { if (e === 'load') setTimeout(fn, 50); },
+                            location: {}
+                        };
+                    }
+                    return _orig ? _orig.call(window, url, name, specs) : null;
+                };
+            })();
+        """.trimIndent(), null)
+    }
+
     private fun setupWebView() {
         buildWebViewSettings(webView.settings)
+        webView.addJavascriptInterface(AndroidBridge(), "AndroidBridge")
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url?.toString() ?: return false
-                // Stay inside WebView for the app domain
-                if (url.startsWith("https://accounting-alfisal.pages.dev")) {
-                    return false
-                }
-                // Open external links in browser
+                if (url.startsWith("https://accounting-alfisal.pages.dev")) return false
                 try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (e: Exception) {}
                 return true
+            }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                injectPrintBridge()
             }
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
@@ -119,39 +176,9 @@ class MainActivity : AppCompatActivity() {
                 request?.grant(request.resources)
             }
 
-            // يتعامل مع window.open() لعرض نوافذ الطباعة داخل التطبيق
-            override fun onCreateWindow(
-                view: WebView?,
-                isDialog: Boolean,
-                isUserGesture: Boolean,
-                resultMsg: Message?
-            ): Boolean {
-                val popupWebView = WebView(this@MainActivity)
-                buildWebViewSettings(popupWebView.settings)
-
-                popupWebView.webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(v: WebView?, r: WebResourceRequest?) = false
-                }
-
-                popupWebView.webChromeClient = object : WebChromeClient() {
-                    override fun onCloseWindow(window: WebView?) {
-                        val parent = window?.parent as? ViewGroup
-                        parent?.removeView(window)
-                    }
-                }
-
-                // إضافة نافذة الطباعة فوق WebView الرئيسي
-                val container = webView?.parent as? ViewGroup
-                val params = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                container?.addView(popupWebView, params)
-
-                val transport = resultMsg?.obj as? WebView.WebViewTransport
-                transport?.webView = popupWebView
-                resultMsg?.sendToTarget()
-                return true
+            override fun onCreateWindow(view: WebView?, isDialog: Boolean, isUserGesture: Boolean, resultMsg: Message?): Boolean {
+                // نتجاهل onCreateWindow — الطباعة تُعالج عبر JavaScript bridge
+                return false
             }
         }
     }
